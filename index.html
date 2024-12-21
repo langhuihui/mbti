@@ -1,13 +1,362 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vite + React + TS</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
-</html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MBTI Dimensions</title>
+    <script src="script.js" defer></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            margin: 0;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f0f0f0;
+            font-family: Arial, sans-serif;
+        }
+
+        .scene-container {
+            position: relative;
+            width: 800px;
+            height: 600px;
+            cursor: move;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        @media (max-width: 800px) {
+            .scene-container {
+                width: 100vw;
+                height: 100vh;
+                border-radius: 0;
+            }
+
+            /* 移动端标签大小调整 */
+            .label {
+                font-size: 1em !important;
+            }
+
+            .letter {
+                font-size: 2em !important;
+            }
+
+            .mbti-type {
+                font-size: 0.8em !important;
+                padding: 1px 3px !important;
+            }
+
+            /* 移动端功能面板调整 */
+            .functions-panel {
+                width: 100%;
+                padding: 5px 10px;
+                font-size: 0.9em;
+            }
+
+            .functions-list {
+                gap: 10px;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+
+            .function-item {
+                font-size: 0.9em;
+            }
+
+            /* 移动端重置按钮调整 */
+            .reset-button {
+                bottom: 10px;
+                right: 10px;
+                padding: 5px 10px;
+                font-size: 0.9em;
+            }
+        }
+
+        /* 边的样式 */
+        .line {
+            position: absolute;
+            height: 2px;
+            transform-origin: left center;
+            left: 0;
+            top: 0;
+        }
+
+        .line-green { background: rgba(0, 255, 0, 0.7); }
+        .line-yellow { background: rgba(255, 255, 0, 0.7); }
+        .line-blue { background: rgba(0, 0, 255, 0.7); }
+        .line-purple { background: rgba(128, 0, 128, 0.7); }
+        .line-black { background: rgba(0, 0, 0, 0.3); }
+
+        #lines-container {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        #labels-container {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        /* 认知功能标签 */
+        .label {
+            position: absolute;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2em;
+            color: #000;
+            text-shadow: 
+                -1px -1px 0 #fff,
+                1px -1px 0 #fff,
+                -1px 1px 0 #fff,
+                1px 1px 0 #fff;
+            pointer-events: none;
+        }
+
+        /* 字母标签样式 */
+        .letter {
+            font-size: 2.5em;
+            font-weight: 900;
+            color: rgba(0, 0, 0, 0.7);
+            text-shadow: 
+                -2px -2px 0 #fff,
+                2px -2px 0 #fff,
+                -2px 2px 0 #fff,
+                2px 2px 0 #fff;
+        }
+
+        /* MBTI类型标签样式 */
+        .mbti-type {
+            font-size: 0.9em;
+            color: rgba(0, 0, 0, 0.8);
+            background: rgba(255, 255, 255, 0.8);
+            padding: 2px 4px;
+            border-radius: 3px;
+            text-shadow: none;
+            cursor: pointer;
+            pointer-events: auto;
+            border: 2px solid transparent;
+        }
+
+        .mbti-type.selected-green {
+            color: #00c853;
+            border-color: #00c853;
+            background: rgba(0, 200, 83, 0.1);
+        }
+
+        .mbti-type.selected-yellow {
+            color: #ffd600;
+            border-color: #ffd600;
+            background: rgba(255, 214, 0, 0.1);
+        }
+
+        .mbti-type.selected-blue {
+            color: #2962ff;
+            border-color: #2962ff;
+            background: rgba(41, 98, 255, 0.1);
+        }
+
+        .mbti-type.selected-purple {
+            color: #aa00ff;
+            border-color: #aa00ff;
+            background: rgba(170, 0, 255, 0.1);
+        }
+
+        /* 认知功能动画小球 */
+        .function-ball {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            pointer-events: none;
+            opacity: 0;
+            transform: translate(-50%, -50%);
+            transition: all 0.3s ease;
+            z-index: 2000;
+        }
+
+        .function-ball.active {
+            opacity: 1;
+        }
+
+        .function-ball.color-green {
+            background: #00c853;
+            box-shadow: 0 0 10px rgba(0, 200, 83, 0.5);
+        }
+
+        .function-ball.color-yellow {
+            background: #ffd600;
+            box-shadow: 0 0 10px rgba(255, 214, 0, 0.5);
+        }
+
+        .function-ball.color-blue {
+            background: #2962ff;
+            box-shadow: 0 0 10px rgba(41, 98, 255, 0.5);
+        }
+
+        .function-ball.color-purple {
+            background: #aa00ff;
+            box-shadow: 0 0 10px rgba(170, 0, 255, 0.5);
+        }
+
+        /* 高亮显示当前认知功能 */
+        .label.highlight-green {
+            color: #00c853;
+            font-weight: 900;
+            transform: translate(-50%, -50%) scale(1.2);
+            transition: all 0.3s ease;
+        }
+
+        .label.highlight-yellow {
+            color: #ffd600;
+            font-weight: 900;
+            transform: translate(-50%, -50%) scale(1.2);
+            transition: all 0.3s ease;
+        }
+
+        .label.highlight-blue {
+            color: #2962ff;
+            font-weight: 900;
+            transform: translate(-50%, -50%) scale(1.2);
+            transition: all 0.3s ease;
+        }
+
+        .label.highlight-purple {
+            color: #aa00ff;
+            font-weight: 900;
+            transform: translate(-50%, -50%) scale(1.2);
+            transition: all 0.3s ease;
+        }
+
+        /* 重置按钮样式 */
+        .reset-button {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.9);
+            border: 2px solid #333;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            z-index: 2001;
+        }
+
+        .reset-button:hover {
+            background: #333;
+            color: white;
+        }
+
+        /* 功能位显示面板 */
+        .functions-panel {
+            position: fixed;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 10px 20px;
+            border-radius: 0 0 8px 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            display: none;
+            z-index: 2001;
+        }
+
+        .functions-panel.visible {
+            display: block;
+        }
+
+        .functions-panel-header {
+            text-align: center;
+            margin-bottom: 8px;
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+
+        .functions-list {
+            display: flex;
+            gap: 20px;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .function-item {
+            display: flex;
+            align-items: center;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .function-item.highlight-green {
+            color: #00c853;
+            transform: scale(1.1);
+        }
+
+        .function-item.highlight-yellow {
+            color: #ffd600;
+            transform: scale(1.1);
+        }
+
+        .function-item.highlight-blue {
+            color: #2962ff;
+            transform: scale(1.1);
+        }
+
+        .function-item.highlight-purple {
+            color: #aa00ff;
+            transform: scale(1.1);
+        }
+
+        .function-number {
+            font-size: 0.8em;
+            color: #666;
+            margin-right: 4px;
+            transition: all 0.3s ease;
+        }
+
+        .function-item.highlight-green .function-number,
+        .function-item.highlight-yellow .function-number,
+        .function-item.highlight-blue .function-number,
+        .function-item.highlight-purple .function-number {
+            color: inherit;
+        }
+    </style>
+</head>
+<body>
+    <div class="functions-panel">
+        <div class="functions-panel-header">MBTI类型</div>
+        <ul class="functions-list">
+            <li class="function-item"><span class="function-number">1.</span><span class="function-text">--</span></li>
+            <li class="function-item"><span class="function-number">2.</span><span class="function-text">--</span></li>
+            <li class="function-item"><span class="function-number">3.</span><span class="function-text">--</span></li>
+            <li class="function-item"><span class="function-number">4.</span><span class="function-text">--</span></li>
+            <li class="function-item"><span class="function-number">5.</span><span class="function-text">--</span></li>
+            <li class="function-item"><span class="function-number">6.</span><span class="function-text">--</span></li>
+            <li class="function-item"><span class="function-number">7.</span><span class="function-text">--</span></li>
+            <li class="function-item"><span class="function-number">8.</span><span class="function-text">--</span></li>
+        </ul>
+    </div>
+    <div class="scene-container">
+        <button class="reset-button">重置视图</button>
+        <div id="lines-container"></div>
+        <div id="labels-container"></div>
+    </div>
+</body>
+</html> 
