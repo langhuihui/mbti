@@ -94,13 +94,29 @@
             transform-origin: left center;
             left: 0;
             top: 0;
+            transition: border-style 0.3s ease;
         }
 
+        /* 实线样式 */
         .line-green { background: rgba(0, 255, 0, 0.7); }
         .line-yellow { background: rgba(255, 200, 0, 0.8); }
         .line-blue { background: rgba(0, 0, 255, 0.7); }
         .line-purple { background: rgba(128, 0, 128, 0.7); }
         .line-black { background: rgba(0, 0, 0, 0.3); }
+
+        /* 虚线样式 */
+        .line.dashed {
+            background: none;
+            height: 0;
+            border-width: 2px;
+            border-style: dashed;
+        }
+
+        .line.dashed.line-green { border-color: rgba(0, 255, 0, 0.4); }
+        .line.dashed.line-yellow { border-color: rgba(255, 200, 0, 0.5); }
+        .line.dashed.line-blue { border-color: rgba(0, 0, 255, 0.4); }
+        .line.dashed.line-purple { border-color: rgba(128, 0, 128, 0.4); }
+        .line.dashed.line-black { border-color: rgba(0, 0, 0, 0.2); }
 
         #lines-container {
             position: absolute;

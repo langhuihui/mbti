@@ -79,7 +79,66 @@ function updateLine(line, start, end, rotateX, rotateY) {
     const startPos = vertexPositions[start];
     const endPos = vertexPositions[end];
     
-    // 获取投影后的坐标
+    // 获取所有顶点的2D投影坐标
+    const projectedVertices = Object.entries(vertexPositions).map(([id, pos]) => {
+        const [x, y, z] = project3DTo2D(pos, rotateX, rotateY);
+        return { id, x, y, z };
+    });
+    
+    // 找出投影轮廓外围的点（这些点一定可见）
+    const outlineVertices = new Set();
+    
+    // 遍历所有点对，检查是否有其他点在这两点构成的线段的同一侧
+    projectedVertices.forEach((v1, i) => {
+        projectedVertices.forEach((v2, j) => {
+            if (i >= j) return; // 避免重复检查
+            
+            // 计算线段方向向量
+            const dx = v2.x - v1.x;
+            const dy = v2.y - v1.y;
+            
+            // 检查所有其他点是否都在这条线的同一侧
+            let allOneSide = true;
+            let lastSign = null;
+            
+            projectedVertices.forEach((v3, k) => {
+                if (k === i || k === j) return; // 跳过线段的端点
+                
+                // 计算点v3到线段v1-v2的叉积
+                const cross = (v3.x - v1.x) * dy - (v3.y - v1.y) * dx;
+                const sign = Math.sign(cross);
+                
+                if (lastSign === null) {
+                    lastSign = sign;
+                } else if (sign !== 0 && sign !== lastSign) {
+                    allOneSide = false;
+                }
+            });
+            
+            // 如果所有点都在线段一侧，则这条线段的两个端点都在轮廓上
+            if (allOneSide) {
+                outlineVertices.add(v1.id);
+                outlineVertices.add(v2.id);
+            }
+        });
+    });
+    
+    // 找出所有可见的顶点
+    const visibleVertices = new Set(outlineVertices);
+    
+    // 获取轮廓点中最远的z坐标
+    const maxOutlineZ = Math.max(...[...outlineVertices].map(id => 
+        projectedVertices.find(v => v.id === id).z
+    ));
+    
+    // 检查非轮廓点是否比轮廓点更靠近屏幕
+    projectedVertices.forEach(vertex => {
+        if (!outlineVertices.has(vertex.id) && vertex.z < maxOutlineZ) {
+            visibleVertices.add(vertex.id);
+        }
+    });
+    
+    // 获取当前边的投影坐标
     const [startX, startY, startZ] = project3DTo2D(startPos, rotateX, rotateY);
     const [endX, endY, endZ] = project3DTo2D(endPos, rotateX, rotateY);
     
@@ -93,9 +152,19 @@ function updateLine(line, start, end, rotateX, rotateY) {
     line.style.width = `${length}px`;
     line.style.transform = `translate(${startX}px, ${startY}px) rotate(${angle}rad)`;
     
-    // 根据平均Z坐标设置深度
+    // 如果边的任一端点不在可见顶点集合中，则该边显示为虚线
+    const shouldBeDashed = !visibleVertices.has(start) || !visibleVertices.has(end);
+    
+    // 设置z-index
     const avgZ = (startZ + endZ) / 2;
     line.style.zIndex = Math.round(1000 - avgZ);
+
+    // 更新线型
+    if (shouldBeDashed) {
+        line.classList.add('dashed');
+    } else {
+        line.classList.remove('dashed');
+    }
 }
 
 // 辅助函数：旋转点
@@ -536,7 +605,7 @@ function moveBallToFunction(functionId, color, duration = 1000) {
                 ball.classList.add('active');
             });
         } else {
-            // 使用 requestAnimationFrame 确保过渡属性生效
+            // 使用 requestAnimationFrame 确保过渡属���生效
             requestAnimationFrame(() => {
                 ball.style.transform = `translate(${centerX}px, ${centerY}px) scale(${scale})`;
             });
