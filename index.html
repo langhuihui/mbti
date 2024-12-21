@@ -123,7 +123,7 @@
             align-items: center;
             justify-content: center;
             font-weight: bold;
-            font-size: 1.2em;
+            font-size: 0.84em;
             color: #000;
             text-shadow: 
                 -1px -1px 0 #fff,
@@ -136,7 +136,7 @@
 
         /* 字母标签样式 */
         .letter {
-            font-size: 2.5em;
+            font-size: 1.75em;
             font-weight: 900;
             color: rgba(0, 0, 0, 0.7);
             text-shadow: 
@@ -149,7 +149,7 @@
         /* MBTI类型标签样式 */
         .mbti-type {
             position: absolute;
-            font-size: 0.9em;
+            font-size: 0.63em;
             color: rgba(0, 0, 0, 0.8);
             background: rgba(255, 255, 255, 0.8);
             padding: 1px 3px;
@@ -168,16 +168,17 @@
             left: 50%;
             top: 100%;
             transform: translateX(-50%);
-            width: 40px;
-            height: 40px;
-            margin-top: 4px;
-            border-radius: 6px;
+            width: 28px;
+            height: 28px;
+            margin-top: 3px;
+            border-radius: 4px;
             background: #fff;
             box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
             opacity: 1;
             visibility: visible;
-            pointer-events: none;
-            z-index: -1;
+            pointer-events: auto;
+            cursor: pointer;
+            z-index: 1;
         }
 
         .mbti-type-thumb img {
@@ -232,15 +233,19 @@
 
         /* 认知功能动画小球 */
         .function-ball {
-            position: absolute;
+            position: fixed;
             width: 12px;
             height: 12px;
             border-radius: 50%;
             pointer-events: none;
             opacity: 0;
-            transform: translate(-50%, -50%);
-            transition: all 0.3s ease;
+            transform-origin: center;
+            transform: translate(-50%, -50%) scale(1);
+            transition: transform 1s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
             z-index: 2000;
+            will-change: transform;
+            left: 0;
+            top: 0;
         }
 
         .function-ball.active {
@@ -300,20 +305,58 @@
         .reset-button {
             position: absolute;
             bottom: 20px;
-            right: 20px;
+            left: 50%;
+            transform: translateX(-50%);
             padding: 8px 16px;
             background: rgba(255, 255, 255, 0.9);
             border: 2px solid #333;
             border-radius: 4px;
             cursor: pointer;
             font-weight: bold;
-            transition: all 0.3s ease;
             z-index: 2001;
         }
 
         .reset-button:hover {
             background: #333;
             color: white;
+        }
+
+        /* GitHub 图标样式 */
+        .github-link {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            width: 32px;
+            height: 32px;
+            z-index: 2001;
+            opacity: 0.7;
+            transition: opacity 0.3s ease;
+        }
+
+        .github-link:hover {
+            opacity: 1;
+        }
+
+        .github-link img {
+            width: 100%;
+            height: 100%;
+        }
+
+        @media (max-width: 800px) {
+            /* 移动端重置按钮调整 */
+            .reset-button {
+                bottom: 10px;
+                padding: 5px 10px;
+                font-size: 0.9em;
+            }
+
+            /* 移动端 GitHub 图标调整 */
+            .github-link {
+                bottom: 10px;
+                right: 10px;
+                width: 28px;
+                height: 28px;
+            }
         }
 
         /* 功能位显示面板 */
@@ -339,6 +382,22 @@
             margin-bottom: 8px;
             font-weight: bold;
             font-size: 1.1em;
+        }
+
+        .functions-panel-header.color-green {
+            color: #00c853;
+        }
+
+        .functions-panel-header.color-yellow {
+            color: #ffd600;
+        }
+
+        .functions-panel-header.color-blue {
+            color: #2962ff;
+        }
+
+        .functions-panel-header.color-purple {
+            color: #aa00ff;
         }
 
         .functions-list {
@@ -428,9 +487,9 @@
 
         @media (max-width: 800px) {
             .mbti-type-thumb {
-                width: 36px;
-                height: 36px;
-                margin-top: 2px;
+                width: 25px;
+                height: 25px;
+                margin-top: 1.4px;
             }
         }
     </style>
@@ -451,6 +510,9 @@
     </div>
     <div class="scene-container">
         <button class="reset-button">重置视图</button>
+        <a href="https://github.com/langhuihui/mbti" target="_blank" rel="noopener" class="github-link">
+            <img src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" alt="GitHub">
+        </a>
         <div class="mbti-image">
             <img src="mbti.png" alt="MBTI形象">
         </div>

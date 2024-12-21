@@ -315,12 +315,17 @@ function autoRotate() {
 function updateLabelPosition(label, position, rotateX, rotateY) {
     const [x, y, z] = project3DTo2D(position, rotateX, rotateY);
     
-    // 使用简单的位置设置
+    // 计算缩放比例
+    const container = document.querySelector('.scene-container');
+    const cameraZ = perspectiveParams.cameraDistance * (window.innerWidth <= 800 ? 150 : 200);
+    const scale = (cameraZ + 200) / (cameraZ + z);  // 添加基础偏移以避免过小
+    
+    // 使用transform设置位置和缩放
     label.style.left = `${x}px`;
     label.style.top = `${y}px`;
-    label.style.transform = 'translate(-50%, -50%)';
+    label.style.transform = `translate(-50%, -50%) scale(${scale})`;
     
-    // 只保留z-index
+    // 设置z-index
     label.style.zIndex = Math.round(1000 - z);
 }
 
@@ -357,10 +362,15 @@ function updateMbtiTypePosition(label, basePos, auxPos, position, rotateX, rotat
     const y = baseY + (auxY - baseY) * position;
     const z = baseZ + (auxZ - baseZ) * position;
     
-    // 设置标签位置
+    // 计算缩放比例
+    const container = document.querySelector('.scene-container');
+    const cameraZ = perspectiveParams.cameraDistance * (window.innerWidth <= 800 ? 150 : 200);
+    const scale = (cameraZ + 200) / (cameraZ + z);  // 添加基础偏移以避免过小
+    
+    // 设置标签位置和缩放
     label.style.left = `${x}px`;
     label.style.top = `${y}px`;
-    label.style.transform = 'translate(-50%, -50%)';
+    label.style.transform = `translate(-50%, -50%) scale(${scale})`;
     label.style.zIndex = Math.round(1000 - z);
 }
 
@@ -409,6 +419,26 @@ function getMbtiTypeColor(type) {
     return edge ? edge.color : 'black';
 }
 
+// MBTI类型名称映射
+const mbtiTypeNames = {
+    'INTJ': '建筑师',
+    'INTP': '逻辑学家',
+    'ENTJ': '指挥官',
+    'ENTP': '辩论家',
+    'INFJ': '提倡者',
+    'INFP': '调停者',
+    'ENFJ': '主人公',
+    'ENFP': '竞选者',
+    'ISTJ': '物流师',
+    'ISFJ': '守卫者',
+    'ESTJ': '总经理',
+    'ESFJ': '执政官',
+    'ISTP': '鉴赏家',
+    'ISFP': '探险家',
+    'ESTP': '企业家',
+    'ESFP': '表演者'
+};
+
 // 更新功能位显示
 function updateFunctionsDisplay(type) {
     const panel = document.querySelector('.functions-panel');
@@ -416,13 +446,18 @@ function updateFunctionsDisplay(type) {
     const functionItems = panel.querySelectorAll('.function-item');
     const functionTexts = panel.querySelectorAll('.function-text');
     
+    // 移除所有颜色类
+    header.classList.remove('color-green', 'color-yellow', 'color-blue', 'color-purple');
+    
     if (!type) {
         panel.classList.remove('visible');
         return;
     }
 
-    // 更新标题
-    header.textContent = `${type} 认知功能`;
+    // 更新标题和颜色
+    header.textContent = `${type} ${mbtiTypeNames[type]}`;
+    const color = getMbtiTypeColor(type);
+    header.classList.add(`color-${color}`);
 
     // 获取认知功能顺序
     const functions = mbtiCognitiveFunctionOrder[type];
@@ -481,32 +516,34 @@ function moveBallToFunction(functionId, color, duration = 1000) {
     const containerRect = document.querySelector('.scene-container').getBoundingClientRect();
     
     // 确保小球可见并设置颜色
-    ball.style.opacity = '1';
-    ball.classList.add('active');
-    ball.className = `function-ball active color-${color}`;
+    ball.classList.add(`color-${color}`);
     
     return new Promise((resolve) => {
-        // 计算小球应该在标签的中心位置
-        const centerX = rect.left - containerRect.left + rect.width / 2;
-        const centerY = rect.top - containerRect.top + rect.height / 2;
+        // 计算小球应该在标签的中心位置（相对于视口）
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
         
-        // 设置初始位置（如果还没有设置的话）
-        if (!ball.style.left) {
-            ball.style.left = `${centerX}px`;
-            ball.style.top = `${centerY}px`;
+        // 获取目标标签的transform scale值
+        const transform = window.getComputedStyle(targetLabel).transform;
+        const matrix = new DOMMatrix(transform);
+        const scale = matrix.m11;  // 获取x轴缩放值
+        
+        // 设置初始位置和缩放
+        if (!ball.style.transform) {
+            ball.style.transform = `translate(${centerX}px, ${centerY}px) scale(${scale})`;
+            // 等待一帧以确保初始位置已应用
+            requestAnimationFrame(() => {
+                ball.classList.add('active');
+            });
+        } else {
+            // 使用 requestAnimationFrame 确保过渡属性生效
+            requestAnimationFrame(() => {
+                ball.style.transform = `translate(${centerX}px, ${centerY}px) scale(${scale})`;
+            });
         }
         
-        // 添加过渡动画
-        ball.style.transition = `all ${duration}ms ease`;
-        
-        // 使用 requestAnimationFrame 确保过渡属性生效
-        requestAnimationFrame(() => {
-            ball.style.left = `${centerX}px`;
-            ball.style.top = `${centerY}px`;
-            
-            // 高亮当前认知功能和功能位
-            highlightFunction(functionId, color);
-        });
+        // 高亮当前认知功能和功能位
+        highlightFunction(functionId, color);
         
         setTimeout(resolve, duration);
     });
@@ -542,38 +579,67 @@ async function animateCognitiveFunctions(type) {
 
     try {
         while (currentAnimation === type) {
-            // 创建新的小球并立即移动到第一个功能位置
-            const ball = createFunctionBall();
-            ball.style.opacity = '0';
-            ball.classList.add('active', `color-${color}`);
-            
-            // 移动到第一个功能位置并显示
-            await moveBallToFunction(functions[0], color, 0);
-            requestAnimationFrame(() => {
-                ball.style.opacity = '1';
-            });
-            await new Promise(resolve => setTimeout(resolve, 300));
-            
-            // 依次移动到其他功能
-            for (let i = 1; i < functions.length && currentAnimation === type; i++) {
-                await moveBallToFunction(functions[i], color);
-            }
-            
-            // 淡出小球
-            if (currentAnimation === type) {
-                ball.style.opacity = '0';
-                await new Promise(resolve => setTimeout(resolve, 300));
-                
-                // 移除旧的小球
-                if (ball) {
-                    ball.remove();
-                }
-                functionBall = null;
-                
-                // 等待一小段时间后继续下一轮
-                if (currentAnimation === type) {
+            let lastBall = null;
+            let lastRect = null;
+
+            for (let i = 0; i < functions.length && currentAnimation === type; i++) {
+                const targetLabel = Array.from(document.querySelectorAll('.label')).find(label => label.textContent === functions[i]);
+                const rect = targetLabel.getBoundingClientRect();
+
+                // 创建新的小球
+                const ball = createFunctionBall();
+                ball.classList.add(`color-${color}`);
+
+                if (i === 0) {
+                    // 第一个位置，直接在目标位置显示
+                    ball.style.transform = `translate(${rect.left + rect.width / 2}px, ${rect.top + rect.height / 2}px) scale(1)`;
+                    ball.classList.add('active');
+                    // 高亮当前认知功能和功能位
+                    highlightFunction(functions[i], color);
+                    lastBall = ball;
+                    lastRect = rect;
                     await new Promise(resolve => setTimeout(resolve, 200));
+                    continue;
                 }
+
+                // 从上一个位置开始
+                const startX = lastRect.left + lastRect.width / 2;
+                const startY = lastRect.top + lastRect.height / 2;
+                ball.style.transform = `translate(${startX}px, ${startY}px) scale(1)`;
+
+                // 等待一帧以确保初始位置已应用
+                await new Promise(resolve => requestAnimationFrame(resolve));
+                ball.classList.add('active');
+
+                // 移动到目标位置
+                await new Promise(resolve => {
+                    requestAnimationFrame(() => {
+                        ball.style.transform = `translate(${rect.left + rect.width / 2}px, ${rect.top + rect.height / 2}px) scale(1)`;
+                        setTimeout(resolve, 1000);
+                    });
+                });
+
+                // 高亮当前认知功能和功能位
+                highlightFunction(functions[i], color);
+
+                // 保存当前位置作为下一个起点
+                if (lastBall) lastBall.remove();
+                lastBall = ball;
+                lastRect = rect;
+
+                await new Promise(resolve => setTimeout(resolve, 200));
+            }
+
+            // 淡出最后一个小球
+            if (lastBall && currentAnimation === type) {
+                lastBall.style.opacity = '0';
+                await new Promise(resolve => setTimeout(resolve, 300));
+                lastBall.remove();
+            }
+
+            // 等待一小段时间后继续下一轮
+            if (currentAnimation === type) {
+                await new Promise(resolve => setTimeout(resolve, 500));
             }
         }
     } catch (error) {
@@ -840,9 +906,13 @@ document.addEventListener('DOMContentLoaded', () => {
             isAutoRotating = false;
         }
         
-        const mbtiLabel = e.target.closest('.mbti-type');
+        // 检查是否点击了MBTI类型标签或其缩略图
+        const mbtiLabel = e.target.closest('.mbti-type') || e.target.closest('.mbti-type-thumb');
         if (mbtiLabel) {
-            const type = mbtiLabel.textContent;
+            // 如果点击的是缩略图，获取其父元素（标签）的文本
+            const type = mbtiLabel.classList.contains('mbti-type-thumb') ? 
+                mbtiLabel.closest('.mbti-type').textContent : 
+                mbtiLabel.textContent;
             
             // 更新功能位显示和MBTI形象
             updateFunctionsDisplay(type);
