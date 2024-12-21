@@ -503,8 +503,9 @@ async function animateCognitiveFunctions(type) {
 
     const color = getMbtiTypeColor(type);
 
-    // 停止之前的动画和自动旋转
+    // 停止自动旋转
     isAutoRotating = false;
+    
     if (functionBall) {
         functionBall.remove();
         functionBall = null;
@@ -579,8 +580,6 @@ async function animateCognitiveFunctions(type) {
     if (currentLabel) {
         currentLabel.classList.remove(`selected-${color}`);
     }
-    // 恢复自动旋转
-    isAutoRotating = true;
 }
 
 // 重置视图函数
@@ -826,8 +825,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.querySelectorAll('.mbti-type').forEach(label => {
                     label.classList.remove('selected-green', 'selected-yellow', 'selected-blue', 'selected-purple');
                 });
-                // 不再在点击空白处恢复自动旋转
-                // isAutoRotating = true;
             }
         }
     });
