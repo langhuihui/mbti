@@ -329,6 +329,20 @@ function createMbtiTypeLabel(type, basePos, auxPos) {
     const label = document.createElement('div');
     label.className = 'label mbti-type';
     label.textContent = type;
+
+    // 添加缩略图容器
+    const thumb = document.createElement('div');
+    thumb.className = 'mbti-type-thumb';
+    
+    // 添加缩略图
+    const img = document.createElement('img');
+    img.src = mbtiImages[type];
+    img.alt = `${type} 缩略图`;
+    thumb.appendChild(img);
+    
+    // 将缩略图添加到标签
+    label.appendChild(thumb);
+    
     return label;
 }
 
@@ -375,11 +389,13 @@ let functionBall = null;
 
 // 创建认知功能动画小球
 function createFunctionBall() {
-    if (!functionBall) {
-        functionBall = document.createElement('div');
-        functionBall.className = 'function-ball';
-        document.querySelector('.scene-container').appendChild(functionBall);
-    }
+    // 先清理所有已存在的小球
+    document.querySelectorAll('.function-ball').forEach(ball => ball.remove());
+    
+    // 创建新的小球
+    functionBall = document.createElement('div');
+    functionBall.className = 'function-ball';
+    document.querySelector('.scene-container').appendChild(functionBall);
     return functionBall;
 }
 
@@ -506,10 +522,9 @@ async function animateCognitiveFunctions(type) {
     // 停止自动旋转
     isAutoRotating = false;
     
-    if (functionBall) {
-        functionBall.remove();
-        functionBall = null;
-    }
+    // 清理所有已存在的小球
+    document.querySelectorAll('.function-ball').forEach(ball => ball.remove());
+    functionBall = null;
 
     // 移除所有MBTI类型标签的选中状态和功能位高亮
     document.querySelectorAll('.mbti-type').forEach(label => {
@@ -552,8 +567,8 @@ async function animateCognitiveFunctions(type) {
                 // 移除旧的小球
                 if (ball) {
                     ball.remove();
-                    functionBall = null;
                 }
+                functionBall = null;
                 
                 // 等待一小段时间后继续下一轮
                 if (currentAnimation === type) {
@@ -566,10 +581,9 @@ async function animateCognitiveFunctions(type) {
     }
 
     // 如果动画被中断，清理小球和高亮效果
-    if (functionBall) {
-        functionBall.remove();
-        functionBall = null;
-    }
+    document.querySelectorAll('.function-ball').forEach(ball => ball.remove());
+    functionBall = null;
+    
     document.querySelectorAll('.label').forEach(l => {
         l.classList.remove('highlight-green', 'highlight-yellow', 'highlight-blue', 'highlight-purple');
     });
@@ -602,6 +616,44 @@ function resetView() {
         initialRotateY = 45;
         updateAllLabels(initialRotateX, initialRotateY);
         updateAllLines(initialRotateX, initialRotateY);
+    }
+}
+
+// MBTI形象图片URL映射
+const mbtiImages = {
+    'INTJ': 'https://static.neris-assets.com/images/personality-types/avatars/intj-architect.svg',
+    'INTP': 'https://static.neris-assets.com/images/personality-types/avatars/intp-logician.svg',
+    'ENTJ': 'https://static.neris-assets.com/images/personality-types/avatars/entj-commander.svg',
+    'ENTP': 'https://static.neris-assets.com/images/personality-types/avatars/entp-debater.svg',
+    'INFJ': 'https://static.neris-assets.com/images/personality-types/avatars/infj-advocate.svg',
+    'INFP': 'https://static.neris-assets.com/images/personality-types/avatars/infp-mediator.svg',
+    'ENFJ': 'https://static.neris-assets.com/images/personality-types/avatars/enfj-protagonist.svg',
+    'ENFP': 'https://static.neris-assets.com/images/personality-types/avatars/enfp-campaigner.svg',
+    'ISTJ': 'https://static.neris-assets.com/images/personality-types/avatars/istj-logistician.svg',
+    'ISFJ': 'https://static.neris-assets.com/images/personality-types/avatars/isfj-defender.svg',
+    'ESTJ': 'https://static.neris-assets.com/images/personality-types/avatars/estj-executive.svg',
+    'ESFJ': 'https://static.neris-assets.com/images/personality-types/avatars/esfj-consul.svg',
+    'ISTP': 'https://static.neris-assets.com/images/personality-types/avatars/istp-virtuoso.svg',
+    'ISFP': 'https://static.neris-assets.com/images/personality-types/avatars/isfp-adventurer.svg',
+    'ESTP': 'https://static.neris-assets.com/images/personality-types/avatars/estp-entrepreneur.svg',
+    'ESFP': 'https://static.neris-assets.com/images/personality-types/avatars/esfp-entertainer.svg'
+};
+
+// 更新MBTI形象图片
+function updateMbtiImage(type) {
+    const imageContainer = document.querySelector('.mbti-image');
+    const image = imageContainer.querySelector('img');
+    
+    if (!type) {
+        imageContainer.classList.remove('visible');
+        return;
+    }
+    
+    const imageUrl = mbtiImages[type];
+    if (imageUrl) {
+        image.src = imageUrl;
+        image.alt = `${type} 形象`;
+        imageContainer.classList.add('visible');
     }
 }
 
@@ -792,13 +844,17 @@ document.addEventListener('DOMContentLoaded', () => {
         if (mbtiLabel) {
             const type = mbtiLabel.textContent;
             
-            // 更新功能位显示
+            // 更新功能位显示和MBTI形象
             updateFunctionsDisplay(type);
+            updateMbtiImage(type);
             
             // 如果点击了不同的类型，先完全停止当前动画
             if (currentAnimation && currentAnimation !== type) {
                 const oldAnimation = currentAnimation;
                 currentAnimation = null;
+                // 清理所有小球
+                document.querySelectorAll('.function-ball').forEach(ball => ball.remove());
+                functionBall = null;
                 await new Promise(resolve => setTimeout(resolve, 300));
                 if (!currentAnimation && oldAnimation !== type) {
                     currentAnimation = type;
@@ -809,16 +865,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 animateCognitiveFunctions(type);
             }
         } else if (!e.target.closest('.functions-panel') && !e.target.closest('.reset-button')) {
-            // 点击空白处（不包括功能面板和重置按钮），停止动画并隐藏功能位显示
+            // 点击空白处，隐藏功能位显示和MBTI形象
             const oldAnimation = currentAnimation;
             currentAnimation = null;
             updateFunctionsDisplay(null);
+            updateMbtiImage(null);
+            // 清理所有小球
+            document.querySelectorAll('.function-ball').forEach(ball => ball.remove());
+            functionBall = null;
             await new Promise(resolve => setTimeout(resolve, 300));
             if (!currentAnimation) {
-                if (functionBall) {
-                    functionBall.remove();
-                    functionBall = null;
-                }
                 document.querySelectorAll('.label').forEach(l => {
                     l.classList.remove('highlight-green', 'highlight-yellow', 'highlight-blue', 'highlight-purple');
                 });
